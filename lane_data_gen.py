@@ -10,7 +10,9 @@ import os
 import json
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-from skimage.draw import line
+import matplotlib.patches as mpatches
+from matplotlib.path import Path
+from skimage.draw import line, bezier_curve
 from tqdm import tqdm
 
 #
@@ -29,61 +31,65 @@ VAL_LABELS      = INPUT_LABELS + "bdd100k_labels_images_val.json"
 
 
 #
+# Data State
+#
+
+STATE_OFFESET = 0
+STATE_INDEX   = 0
+#
 # Settings
 #
 
-VAL_LOAD = 10
-TRAIN_LOAD = 10
-DOWNSCALE = 4
-
+VAL_LOAD = 20
+TRAIN_LOAD = 20
+DOWNSCALE = 1
+VAL_START = 40
 #
 # Load Labels into Memory
 #
 
-def load_label(path, to_load):
-  count = 0
+
+
+def load_label_file(path):
   with open(path) as json_file:  
     data = json.load(json_file)
+    return data
+
+print ("--- LOADING  VALIDATION LABELES --- ")
+val_file   = load_label_file(VAL_LABELS)
+
+
+#
+# Parse Labels
+#
+
+def parse_label(entry):
+  image_name = entry['name']
+  labels = entry['labels']
+  
+  lanes = []
+  formatted_data = []
+  for label in labels:
+    cat = label['category']
     
-    formatted_data = []
+    if cat not in 'lane':
+      continue
+    if label['attributes']['laneDirection'] not in "parallel": 
+      continue
+
+    polygon = label['poly2d'][0]
+    verts  = polygon['vertices']   
+    types = polygon['types']
+
+    codes = []
+    moves = {'L': Path.LINETO,'C': Path.CURVE4}
+    codes = [moves[t] for t in types]
+    codes[0] = Path.MOVETO
     
-    for entry in tqdm(data):
-      
-      if count > to_load:
-        continue
-      
-      image_name = entry['name']
-      labels = entry['labels']
-      
-      lanes = []
-      
-      for label in labels:
-        cat = label['category']
-        
-        if cat not in 'lane':
-          continue
-
-
-        polygon = label['poly2d'][0]
-        verts  = polygon['vertices']   
-
-        curves = []
-
-        for vert in verts:
-          
-
-        lanes.append(verts)
-      
-      formatted_data.append([image_name, lanes])
-      count += 1
-     
-    print("Loaded " + str(len(formatted_data)) + " entries")
-    return formatted_data
-      
-val_labels = load_label(VAL_LABELS, VAL_LOAD)
-#train_labels = load_label(TRAIN_LABELS, TRAIN_LOAD)
-
-print(val_labels[1])
+    lanes.append([codes,verts])
+  
+  formatted_data.append([image_name, lanes])
+  return formatted_data
 
 #
 # Image Generation
@@ -93,30 +99,60 @@ def label_to_image(label):
   image = np.zeros([int(720 / DOWNSCALE),int(1280 / DOWNSCALE),3])
   
   for cur in lines:
-    y1 = int(cur[0][0] / DOWNSCALE)
-    x1 = int(cur[0][1] / DOWNSCALE)
-    y2 = int(cur[1][0] / DOWNSCALE)
-    x2 = int(cur[1][1] / DOWNSCALE)
-    rr, cc = line(x1,y1,x2,y2)
-    rr = np.clip(rr, 0, int(720 / DOWNSCALE) - 2)
-    cc = np.clip(cc, 0, int(1280 / DOWNSCALE) -2)
-    image[rr     ,cc, :] = 1.0
-    image[rr     ,cc - 1, :] = 1.0
-    image[rr     ,cc + 1, :] = 1.0
-    image[rr - 1 ,cc , :] = 1.0
-    image[rr + 1 ,cc , :] = 1.0
-    image[rr - 1 ,cc - 1, :] = 1.0
-    image[rr + 1 ,cc + 1, :] = 1.0
+    verts = cur[1]
+    control = cur[0]
+    path = Path(verts, control)
+    patch = mpatches.PathPatch(path, snap=True, lw=3, edgecolor=(1.0,1.0,1.0))
+   
+
+    for i in range(len(patch.get_verts())- 1 ):
+      vert = patch.get_verts()[i]
+
+      next_vert = patch.get_verts()[i + 1];
+      y1 = int(vert[0] / DOWNSCALE)
+      x1 = int(vert[1] / DOWNSCALE)
+      y2 = int(next_vert[0] / DOWNSCALE)
+      x2 = int(next_vert[1] / DOWNSCALE)
+      rr, cc = line(x1,y1,x2,y2)
+      rr = np.clip(rr, 0, int(720 / DOWNSCALE) - 2)
+      cc = np.clip(cc, 0, int(1280 / DOWNSCALE) -2)
+      image[rr     ,cc, :] = 1.0
+      image[rr     ,cc - 1, :] = 1.0
+      image[rr     ,cc + 1, :] = 1.0
+      image[rr - 1 ,cc , :] = 1.0
+      image[rr + 1 ,cc , :] = 1.0
+      image[rr - 1 ,cc - 1, :] = 1.0
+      image[rr + 1 ,cc + 1, :] = 1.0
+
   image = cv2.resize(image, (254,126))
   return image
 
-#y1 = []
-#for label in tqdm(train_labels):
-#  y1.append(label_to_image(label))
+def get_source(path):
+  image = cv2.imread(path)
+  image = cv2.normalize(image.astype('float'), None, 0.0, 1.0, cv2.NORM_MINMAX)
+  image = cv2.resize(image, (254,126))
+  return image
 
-y2 = []
-for label in tqdm(val_labels):
-  y2.append(label_to_image(label))
+print ("--- GENERATING VALIDATION DATA ---")
 
-plt.imshow(y2[8])
-plt.show()
+for i in tqdm(range(VAL_LOAD)):
+  entry = val_file[i]
+  labels = parse_label(entry)
+  for label in labels:
+    data_entry = [get_source(VAL_IMAGES + label[0]), label_to_image(label)]
+    np.save("data/output/lane/val/lane-"+str(STATE_INDEX)+".npy", data_entry);
+    STATE_INDEX += 1
+
+print ("--- LOADING TRAINING LABELES --- ")
+train_file   = load_label_file(TRAIN_LABELS)
+
+STATE_INDEX = 0
+print ("--- GENERATING TRAINING DATA ---")
+for i in tqdm(range(TRAIN_LOAD)):
+  entry = train_file[i]
+  labels = parse_label(entry)
+  for label in labels:
+    data_entry = [get_source(TRAIN_IMAGES + label[0]), label_to_image(label)]
+    np.save("data/output/lane/train/lane-"+str(STATE_INDEX)+".npy", data_entry);
+    STATE_INDEX += 1
+    
