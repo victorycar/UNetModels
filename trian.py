@@ -113,6 +113,6 @@ H = model.fit_generator(
 	steps_per_epoch=TRAIN_COUNT // BATCH,
 	validation_data=valGen,
 	validation_steps=VAL_COUNT // BATCH,
-    epochs=10,
+    epochs=25,
     verbose=1, 
     callbacks=[ model_checkpoint_best, predict_cb,tbCallBack])

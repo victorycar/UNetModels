@@ -1,0 +1,27 @@
+lanes = predict(lane_model,frame)
+   
+    lanes[lanes > 0.5] = 1.0
+    lanes[lanes < 0.5] = 0
+    
+    lanes = cv2.resize(lanes, (1280,720))
+    
+    lanes *= 255
+    lanes = cv2.normalize(lanes.astype('uint8'), None, 0, 255, cv2.NORM_MINMAX)
+    lanes = cv2.cvtColor(lanes, cv2.COLOR_RGB2GRAY)
+  
+    (_, contours, _) = cv2.findContours(lanes, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    # biggest area
+   
+    for target in contours:
+        if cv2.contourArea(target) < 2500:
+            target = []
+            #cv2.drawContours(frame, [target], -1, [0, 200, 0], -1) # debug
+        else:
+            x = target[:, :, 0].flatten()
+            y = target[:, :, 1].flatten()
+            poly = np.poly1d(np.polyfit(x, y, 5))
+            for _x in range(min(x), max(x), 5): # too lazy for line/curve :)
+                cv2.circle(dst, (_x, int(poly(_x))), 4, [255, 0, 0])
+
+    # Display the resulting frame
+    lanes = cv2.cvtColor(lanes, cv2.COLOR_GRAY2RGB)
