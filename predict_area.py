@@ -47,10 +47,10 @@ while(True):
         continue;
 
     frame = cv2.resize(frame, (1280,720))
-    regions = predict_model(frame)
-    regions = cv2.cvtColor(regions, cv2.COLOR_BGR2RGB)
-    regions[regions > 0.3 ] = 1.0
-    regions[regions < 0.3 ] = 0
+    regions_raw = predict_model(frame)
+    regions = cv2.cvtColor(regions_raw, cv2.COLOR_BGR2RGB)
+    regions[regions > 0.5 ] = 1.0
+    regions[regions < 0.5 ] = 0
     kernel = np.ones((5,5),np.uint8)
     regions = cv2.morphologyEx(regions, cv2.MORPH_CLOSE, kernel)
     regions = cv2.resize(regions, (1280,720))

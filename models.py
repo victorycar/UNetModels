@@ -168,7 +168,7 @@ def unet_mid(pretrained_weights=None, image_size=(128, 256, 3), input_chan=3, ou
 
     model = Model(input=inputs, output=conv10)
 
-    model.compile(optimizer=Adam(lr=5e-4),
+    model.compile(optimizer=Adam(lr=0.005),
         loss='binary_crossentropy', metrics=[dice_coef])
 
     print(model.summary())

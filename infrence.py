@@ -35,10 +35,10 @@ def predict(model,image):
 
 import numpy as np
 import cv2
-
-cap = cv2.VideoCapture(1)
 out = cv2.VideoWriter('output.mp4', -1, 20, (960,960))
 raw = cv2.VideoWriter('raw.mp4', -1, 20, (1280,720))
+cap = cv2.VideoCapture(0)
+
 while(True):
     # Capture frame-by-frame
     ret, frame = cap.read()

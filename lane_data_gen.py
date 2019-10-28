@@ -19,13 +19,13 @@ from tqdm import tqdm
 # Data Path Setting
 #
 
-DATA_PATH_BASE  = "data/"
+DATA_PATH_BASE  = "D:/Datasets/Berkly/"
 INPUT_DATA_BASE = DATA_PATH_BASE + "input/"
 INPUT_IMAGES    = INPUT_DATA_BASE + "images/"
 INPUT_LABELS    = INPUT_DATA_BASE + "labels/"
 TRAIN_IMAGES    = INPUT_IMAGES + "train/"
 VAL_IMAGES      = INPUT_IMAGES + "val/"
-TEST_IMAGES     = INPUT_IMAGES + "test/"
+
 TRAIN_LABELS    = INPUT_LABELS + "bdd100k_labels_images_train.json"
 VAL_LABELS      = INPUT_LABELS + "bdd100k_labels_images_val.json"
 
@@ -40,9 +40,9 @@ STATE_INDEX   = 0
 # Settings
 #
 
-VAL_LOAD = 20
-TRAIN_LOAD = 20
-DOWNSCALE = 1
+VAL_LOAD = 1000
+TRAIN_LOAD = 3000
+DOWNSCALE = 4
 VAL_START = 40
 #
 # Load Labels into Memory
@@ -75,6 +75,7 @@ def parse_label(entry):
     if cat not in 'lane':
       continue
     if label['attributes']['laneDirection'] not in "parallel": 
+      #print(label['attributes']['laneDirection'] )
       continue
 
     polygon = label['poly2d'][0]
@@ -84,6 +85,7 @@ def parse_label(entry):
     codes = []
     moves = {'L': Path.LINETO,'C': Path.CURVE4}
     codes = [moves[t] for t in types]
+    
     codes[0] = Path.MOVETO
     
     lanes.append([codes,verts])
@@ -101,14 +103,20 @@ def label_to_image(label):
   for cur in lines:
     verts = cur[1]
     control = cur[0]
-    path = Path(verts, control)
-    patch = mpatches.PathPatch(path, snap=True, lw=3, edgecolor=(1.0,1.0,1.0))
+    offset = 1
+
+    if 4 in control:
+      path = Path(verts, control)
+      patch = mpatches.PathPatch(path, snap=True, lw=10, edgecolor=(1.0,1.0,1.0))
+      verts = patch.get_verts()
+      offset = 2
+    
    
 
-    for i in range(len(patch.get_verts())- 1 ):
-      vert = patch.get_verts()[i]
+    for i in range(len(verts)- offset ):
+      vert = verts[i]
 
-      next_vert = patch.get_verts()[i + 1];
+      next_vert = verts[i + 1];
       y1 = int(vert[0] / DOWNSCALE)
       x1 = int(vert[1] / DOWNSCALE)
       y2 = int(next_vert[0] / DOWNSCALE)
@@ -124,10 +132,11 @@ def label_to_image(label):
       image[rr - 1 ,cc - 1, :] = 1.0
       image[rr + 1 ,cc + 1, :] = 1.0
 
-  image = cv2.resize(image, (254,126))
+  image = cv2.resize(image, (254, 126))
   return image
 
 def get_source(path):
+  
   image = cv2.imread(path)
   image = cv2.normalize(image.astype('float'), None, 0.0, 1.0, cv2.NORM_MINMAX)
   image = cv2.resize(image, (254,126))
@@ -140,7 +149,7 @@ for i in tqdm(range(VAL_LOAD)):
   labels = parse_label(entry)
   for label in labels:
     data_entry = [get_source(VAL_IMAGES + label[0]), label_to_image(label)]
-    np.save("data/output/lane/val/lane-"+str(STATE_INDEX)+".npy", data_entry);
+    np.save("data/lane/val/bddlane-"+str(STATE_INDEX)+".npy", data_entry);
     STATE_INDEX += 1
 
 print ("--- LOADING TRAINING LABELES --- ")
@@ -153,6 +162,6 @@ for i in tqdm(range(TRAIN_LOAD)):
   labels = parse_label(entry)
   for label in labels:
     data_entry = [get_source(TRAIN_IMAGES + label[0]), label_to_image(label)]
-    np.save("data/output/lane/train/lane-"+str(STATE_INDEX)+".npy", data_entry);
+    np.save("data/lane/train/bddlane-"+str(STATE_INDEX)+".npy", data_entry);
     STATE_INDEX += 1
     

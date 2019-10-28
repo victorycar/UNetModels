@@ -19,7 +19,7 @@ from tqdm import tqdm
 # Data Path Setting
 #
 
-DATA_PATH_BASE  = "data/"
+DATA_PATH_BASE  = "D:/Datasets/Berkly/bdd100k_images\bdd100k\images\100k"
 INPUT_DATA_BASE = DATA_PATH_BASE + "input/"
 INPUT_IMAGES    = INPUT_DATA_BASE + "images/"
 INPUT_LABELS    = INPUT_DATA_BASE + "labels/"

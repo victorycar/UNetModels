@@ -18,6 +18,10 @@ from tqdm import tqdm_notebook as tqdm
 from keras_tqdm import TQDMNotebookCallback
 
 from models import *
+
+import os
+
+
 PATH_TEST = "data/input/images/test/"
 PATH_BASE = "data/output/lane/"
 
@@ -36,9 +40,9 @@ def predict_model(image):
 import numpy as np
 import cv2
 
-cap = cv2.VideoCapture("drive-1.mp4")
-#out = cv2.VideoWriter('output.mp4', -1, 30, (960,960))
-#raw = cv2.VideoWriter('raw.mp4', -1, 20, (1280,720))
+cap = cv2.VideoCapture(0)
+out = cv2.VideoWriter('output.mp4', -1, 30, (960,960))
+raw = cv2.VideoWriter('raw.mp4', -1, 20, (1280,720))
 frame_n = 0
 
 while(True):
@@ -50,10 +54,10 @@ while(True):
     frame = cv2.resize(frame, (1280,720))
     lanes = predict_model(frame)
     
-    
+    cv2.imshow("Lanes Raw", lanes)
    
-    lanes[lanes > 0.5] = 1.0
-    lanes[lanes < 0.5] = 0
+    lanes[lanes > 0.3] = 1.0
+    lanes[lanes < 0.3] = 0
     
     lanes = cv2.resize(lanes, (1280,720))
    
@@ -66,7 +70,7 @@ while(True):
     # biggest area
    
     for target in contours:
-        if cv2.contourArea(target) < 2500:
+        if cv2.contourArea(target) < 2000:
             target = []
             #cv2.drawContours(frame, [target], -1, [0, 200, 0], -1) # debug
         else:
@@ -83,8 +87,8 @@ while(True):
     merged = np.concatenate((frame, lanes), axis=0)
     merged = cv2.resize(merged, (960,960))
     cv2.imshow("Result", merged)
-    #out.write(merged)
-    #raw.write(frame)
+    out.write(merged)
+    raw.write(frame)
    # frame_n += 1
 
    #if frame_n > (24 * 60):
