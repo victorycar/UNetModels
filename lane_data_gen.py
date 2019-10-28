@@ -19,7 +19,7 @@ from tqdm import tqdm
 # Data Path Setting
 #
 
-DATA_PATH_BASE  = "D:/Datasets/Berkly/"
+DATA_PATH_BASE  = "G:/Datasets/Berkly/"
 INPUT_DATA_BASE = DATA_PATH_BASE + "input/"
 INPUT_IMAGES    = INPUT_DATA_BASE + "images/"
 INPUT_LABELS    = INPUT_DATA_BASE + "labels/"
@@ -40,8 +40,8 @@ STATE_INDEX   = 0
 # Settings
 #
 
-VAL_LOAD = 1000
-TRAIN_LOAD = 3000
+VAL_LOAD = 3000
+TRAIN_LOAD = 10000
 DOWNSCALE = 4
 VAL_START = 40
 #

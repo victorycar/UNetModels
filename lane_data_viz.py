@@ -8,7 +8,7 @@ import matplotlib.image as mpimg
 PATH_BASE = "data/lane/"
 
 
-files = glob.glob(PATH_BASE + "/val/*.npy")
+files = glob.glob(PATH_BASE + "/train/*.npy")
 
 for file in files:
 
@@ -16,12 +16,14 @@ for file in files:
     source = entry[0]
     lanes = entry[1]
    
-    
+    result = source + lanes;
+
     print("Source Max: " + str(np.max(source)))
     print("Source Min: " + str(np.min(source)))
     print("lanes Max: " + str(np.max(lanes)))
     print("lanes Min: " + str(np.min(lanes)))
     
-    plt.imshow(lanes)
-
-    plt.show();
+    cv2.imshow("lanes",lanes)
+    cv2.imshow("result",result)
+    
+    cv2.waitKey(100)
